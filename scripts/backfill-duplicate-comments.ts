@@ -23,7 +23,7 @@ interface GitHubComment {
   user: { type: string; id: number };
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
+export async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
   const response = await fetch(`https://api.github.com${endpoint}`, {
     method,
     headers: {
@@ -44,7 +44,7 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
-async function triggerDedupeWorkflow(
+export async function triggerDedupeWorkflow(
   owner: string,
   repo: string,
   issueNumber: number,
@@ -69,7 +69,7 @@ async function triggerDedupeWorkflow(
   );
 }
 
-async function backfillDuplicateComments(): Promise<void> {
+export async function backfillDuplicateComments(): Promise<void> {
   console.log("[DEBUG] Starting backfill duplicate comments script");
 
   const token = process.env.GITHUB_TOKEN;
@@ -207,7 +207,6 @@ Environment Variables:
   );
 }
 
-backfillDuplicateComments().catch(console.error);
-
-// Make it a module
-export {};
+if (import.meta.main) {
+  backfillDuplicateComments().catch(console.error);
+}

@@ -25,7 +25,7 @@ interface GitHubReaction {
   content: string;
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
+export async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
   const response = await fetch(`https://api.github.com${endpoint}`, {
     method,
     headers: {
@@ -46,7 +46,7 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
-function extractDuplicateIssueNumber(commentBody: string): number | null {
+export function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
   if (match) {
@@ -63,7 +63,7 @@ function extractDuplicateIssueNumber(commentBody: string): number | null {
 }
 
 
-async function closeIssueAsDuplicate(
+export async function closeIssueAsDuplicate(
   owner: string,
   repo: string,
   issueNumber: number,
@@ -96,7 +96,7 @@ If this is incorrect, please re-open this issue or create a new one.
 
 }
 
-async function autoCloseDuplicates(): Promise<void> {
+export async function autoCloseDuplicates(): Promise<void> {
   console.log("[DEBUG] Starting auto-close duplicates script");
 
   const token = process.env.GITHUB_TOKEN;
@@ -271,7 +271,6 @@ async function autoCloseDuplicates(): Promise<void> {
   );
 }
 
-autoCloseDuplicates().catch(console.error);
-
-// Make it a module
-export {};
+if (import.meta.main) {
+  autoCloseDuplicates().catch(console.error);
+}
