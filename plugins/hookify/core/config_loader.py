@@ -84,6 +84,44 @@ class Rule:
         )
 
 
+def _parse_inline_dict_item(item_text: str) -> Dict[str, str]:
+    """Parse an inline dict item like "field: command, operator: contains".
+
+    Commas inside quoted values are preserved, and an unquoted chunk without
+    its own "key:" is treated as a continuation of the previous value rather
+    than being dropped (so "pattern: foo, bar" keeps the full "foo, bar").
+    """
+    parts = []
+    current = []
+    quote = None
+    for ch in item_text:
+        if quote:
+            current.append(ch)
+            if ch == quote:
+                quote = None
+        elif ch in ('"', "'"):
+            quote = ch
+            current.append(ch)
+        elif ch == ',':
+            parts.append(''.join(current))
+            current = []
+        else:
+            current.append(ch)
+    parts.append(''.join(current))
+
+    item_dict = {}
+    last_key = None
+    for part in parts:
+        if ':' in part:
+            k, v = part.split(':', 1)
+            last_key = k.strip()
+            item_dict[last_key] = v.strip()
+        elif last_key is not None:
+            item_dict[last_key] = f"{item_dict[last_key]},{part}".strip()
+
+    return {k: v.strip('"').strip("'") for k, v in item_dict.items()}
+
+
 def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     """Extract YAML frontmatter and message body from markdown.
 
@@ -163,12 +201,7 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
             # Check if this is an inline dict (key: value on same line)
             if ':' in item_text and ',' in item_text:
                 # Inline comma-separated dict: "- field: command, operator: regex_match"
-                item_dict = {}
-                for part in item_text.split(','):
-                    if ':' in part:
-                        k, v = part.split(':', 1)
-                        item_dict[k.strip()] = v.strip().strip('"').strip("'")
-                current_list.append(item_dict)
+                current_list.append(_parse_inline_dict_item(item_text))
                 in_dict_item = False
             elif ':' in item_text:
                 # Start of multi-line dict item: "- field: command"

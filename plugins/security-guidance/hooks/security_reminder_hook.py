@@ -10,17 +10,19 @@ import random
 import sys
 from datetime import datetime
 
-# Debug log file
-DEBUG_LOG_FILE = "/tmp/security-warnings-log.txt"
+# Debug log file (expanded lazily so tests overriding HOME are respected)
+DEBUG_LOG_FILE = "~/.claude/security-warnings-log.txt"
 
 
 def debug_log(message):
     """Append debug message to log file with timestamp."""
     try:
+        log_path = os.path.expanduser(DEBUG_LOG_FILE)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        with open(DEBUG_LOG_FILE, "a") as f:
+        with open(log_path, "a") as f:
             f.write(f"[{timestamp}] {message}\n")
-    except Exception as e:
+    except Exception:
         # Silently ignore logging errors to avoid disrupting the hook
         pass
 

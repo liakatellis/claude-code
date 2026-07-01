@@ -37,7 +37,7 @@ const response = await fetch(
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "Content-Type": "application/json",
       "User-Agent": "lifecycle-comment",
     },

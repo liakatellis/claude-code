@@ -41,6 +41,12 @@ iptables -A OUTPUT -o lo -j ACCEPT
 ipset create allowed-domains hash:net
 
 # Fetch GitHub meta information and aggregate + add their IP ranges
+# `aggregate` runs inside a process substitution below, where a missing
+# binary would not trip `set -e` — the loop would silently add no ranges.
+if ! command -v aggregate >/dev/null 2>&1; then
+    echo "ERROR: 'aggregate' command not found (required to merge GitHub IP ranges)"
+    exit 1
+fi
 echo "Fetching GitHub IP ranges..."
 gh_ranges=$(curl -s https://api.github.com/meta)
 if [ -z "$gh_ranges" ]; then

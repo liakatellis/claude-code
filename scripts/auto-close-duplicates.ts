@@ -25,12 +25,12 @@ interface GitHubReaction {
   content: string;
 }
 
-async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
+export async function githubRequest<T>(endpoint: string, token: string, method: string = 'GET', body?: any): Promise<T> {
   const response = await fetch(`https://api.github.com${endpoint}`, {
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "auto-close-duplicates-script",
       ...(body && { "Content-Type": "application/json" }),
     },
@@ -46,7 +46,7 @@ async function githubRequest<T>(endpoint: string, token: string, method: string 
   return response.json();
 }
 
-function extractDuplicateIssueNumber(commentBody: string): number | null {
+export function extractDuplicateIssueNumber(commentBody: string): number | null {
   // Try to match #123 format first
   let match = commentBody.match(/#(\d+)/);
   if (match) {
@@ -63,7 +63,7 @@ function extractDuplicateIssueNumber(commentBody: string): number | null {
 }
 
 
-async function closeIssueAsDuplicate(
+export async function closeIssueAsDuplicate(
   owner: string,
   repo: string,
   issueNumber: number,
@@ -96,7 +96,7 @@ If this is incorrect, please re-open this issue or create a new one.
 
 }
 
-async function autoCloseDuplicates(): Promise<void> {
+export async function autoCloseDuplicates(): Promise<void> {
   console.log("[DEBUG] Starting auto-close duplicates script");
 
   const token = process.env.GITHUB_TOKEN;
@@ -105,8 +105,13 @@ async function autoCloseDuplicates(): Promise<void> {
   }
   console.log("[DEBUG] GitHub token found");
 
-  const owner = process.env.GITHUB_REPOSITORY_OWNER || "anthropics";
-  const repo = process.env.GITHUB_REPOSITORY_NAME || "claude-code";
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY_NAME;
+  if (!owner || !repo) {
+    throw new Error(
+      "GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME environment variables are required"
+    );
+  }
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
 
   const threeDaysAgo = new Date();
@@ -137,7 +142,12 @@ async function autoCloseDuplicates(): Promise<void> {
     page++;
     
     // Safety limit to avoid infinite loops
-    if (page > 20) break;
+    if (page > 20) {
+      console.warn(
+        "[WARN] Reached 20-page pagination safety limit; remaining open issues were not scanned"
+      );
+      break;
+    }
   }
   
   const issues = allIssues;
@@ -271,7 +281,6 @@ async function autoCloseDuplicates(): Promise<void> {
   );
 }
 
-autoCloseDuplicates().catch(console.error);
-
-// Make it a module
-export {};
+if (import.meta.main) {
+  autoCloseDuplicates().catch(console.error);
+}

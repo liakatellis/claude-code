@@ -12,7 +12,7 @@ const CLOSE_MESSAGE = (reason: string) =>
 
 // --
 
-async function githubRequest<T>(
+export async function githubRequest<T>(
   endpoint: string,
   method = "GET",
   body?: unknown
@@ -24,7 +24,7 @@ async function githubRequest<T>(
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "sweep",
       ...(body && { "Content-Type": "application/json" }),
     },
@@ -32,7 +32,10 @@ async function githubRequest<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 404) return {} as T;
+    // Paginated callers check `.length` to stop looping, so a 404 must
+    // yield an empty array — `{}` would leave `.length` undefined and
+    // never break the pagination loop.
+    if (response.status === 404) return [] as unknown as T;
     const text = await response.text();
     throw new Error(`GitHub API ${response.status}: ${text}`);
   }
@@ -42,7 +45,7 @@ async function githubRequest<T>(
 
 // --
 
-async function markStale(owner: string, repo: string) {
+export async function markStale(owner: string, repo: string) {
   const staleDays = lifecycle.find((l) => l.label === "stale")!.days;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - staleDays);
@@ -89,7 +92,7 @@ async function markStale(owner: string, repo: string) {
   return labeled;
 }
 
-async function closeExpired(owner: string, repo: string) {
+export async function closeExpired(owner: string, repo: string) {
   let closed = 0;
 
   for (const { label, days, reason } of lifecycle) {
@@ -155,14 +158,16 @@ async function closeExpired(owner: string, repo: string) {
 
 // --
 
-const owner = process.env.GITHUB_REPOSITORY_OWNER;
-const repo = process.env.GITHUB_REPOSITORY_NAME;
-if (!owner || !repo)
-  throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
+if (import.meta.main) {
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY_NAME;
+  if (!owner || !repo)
+    throw new Error("GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME required");
 
-if (DRY_RUN) console.log("DRY RUN — no changes will be made\n");
+  if (DRY_RUN) console.log("DRY RUN — no changes will be made\n");
 
-const labeled = await markStale(owner, repo);
-const closed = await closeExpired(owner, repo);
+  const labeled = await markStale(owner, repo);
+  const closed = await closeExpired(owner, repo);
 
-console.log(`\nDone: ${labeled} ${DRY_RUN ? "would be labeled" : "labeled"} stale, ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
+  console.log(`\nDone: ${labeled} ${DRY_RUN ? "would be labeled" : "labeled"} stale, ${closed} ${DRY_RUN ? "would be closed" : "closed"}`);
+}
