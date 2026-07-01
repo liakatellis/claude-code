@@ -94,10 +94,7 @@ class TestExtractFrontmatter:
             {"field": "command", "operator": "regex_match", "pattern": "curl"}
         ]
 
-    def test_inline_dict_pattern_containing_comma_is_split_incorrectly(self):
-        """Characterizes a known parser limitation: the inline-dict branch
-        naively splits the whole line on ',', so a pattern value containing
-        its own comma is silently truncated rather than preserved."""
+    def test_inline_dict_pattern_containing_unquoted_comma_is_preserved(self):
         content = (
             "---\n"
             "conditions:\n"
@@ -106,7 +103,22 @@ class TestExtractFrontmatter:
             "body"
         )
         frontmatter, _ = extract_frontmatter(content)
-        assert frontmatter["conditions"][0]["pattern"] == "foo"
+        assert frontmatter["conditions"][0]["pattern"] == "foo, bar"
+
+    def test_inline_dict_pattern_containing_quoted_comma_is_preserved(self):
+        content = (
+            "---\n"
+            "conditions:\n"
+            '  - field: command, operator: contains, pattern: "foo, bar"\n'
+            "---\n"
+            "body"
+        )
+        frontmatter, _ = extract_frontmatter(content)
+        assert frontmatter["conditions"][0] == {
+            "field": "command",
+            "operator": "contains",
+            "pattern": "foo, bar",
+        }
 
     def test_comments_and_blank_lines_are_skipped(self):
         content = (

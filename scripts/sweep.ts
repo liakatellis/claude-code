@@ -24,7 +24,7 @@ export async function githubRequest<T>(
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "sweep",
       ...(body && { "Content-Type": "application/json" }),
     },

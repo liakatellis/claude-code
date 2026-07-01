@@ -30,7 +30,7 @@ export async function githubRequest<T>(endpoint: string, token: string, method: 
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "auto-close-duplicates-script",
       ...(body && { "Content-Type": "application/json" }),
     },
@@ -142,7 +142,12 @@ export async function autoCloseDuplicates(): Promise<void> {
     page++;
     
     // Safety limit to avoid infinite loops
-    if (page > 20) break;
+    if (page > 20) {
+      console.warn(
+        "[WARN] Reached 20-page pagination safety limit; remaining open issues were not scanned"
+      );
+      break;
+    }
   }
   
   const issues = allIssues;

@@ -28,7 +28,7 @@ export async function githubRequest<T>(endpoint: string, token: string, method: 
     method,
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github.v3+json",
+      Accept: "application/vnd.github+json",
       "User-Agent": "backfill-duplicate-comments-script",
       ...(body && { "Content-Type": "application/json" }),
     },
