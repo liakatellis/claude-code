@@ -37,10 +37,10 @@ describe("githubRequest", () => {
     await expect(githubRequest("/foo")).rejects.toThrow("GITHUB_TOKEN required");
   });
 
-  test("returns an empty object on 404 instead of throwing", async () => {
+  test("returns an empty array on 404 instead of throwing", async () => {
     queue = makeFetchQueue([{ ok: false, status: 404, body: {} }]);
     const result = await githubRequest("/repos/x/y/issues/1");
-    expect(result).toEqual({});
+    expect(result).toEqual([]);
   });
 
   test("throws with status and body text on a non-404 error", async () => {
@@ -125,6 +125,17 @@ describe("markStale", () => {
 
     expect(labeled).toBe(0);
     expect(queue.calls).toHaveLength(2);
+  });
+
+  test("stops pagination when the issues endpoint returns 404", async () => {
+    // Regression: a 404 used to return {} whose undefined .length never
+    // triggered the empty-page break, looping until the page cap.
+    queue = makeFetchQueue([{ ok: false, status: 404, body: {} }]);
+
+    const labeled = await markStale("anthropics", "claude-code");
+
+    expect(labeled).toBe(0);
+    expect(queue.calls).toHaveLength(1);
   });
 
   test("stops as soon as it reaches an issue updated within the cutoff (ascending sort)", async () => {

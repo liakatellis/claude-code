@@ -68,22 +68,37 @@ describe("closeIssueAsDuplicate", () => {
 
 describe("autoCloseDuplicates", () => {
   let queue: FetchQueue | undefined;
-  const originalToken = process.env.GITHUB_TOKEN;
+  const ENV_KEYS = ["GITHUB_TOKEN", "GITHUB_REPOSITORY_OWNER", "GITHUB_REPOSITORY_NAME"] as const;
+  const originalEnv: Record<string, string | undefined> = {};
 
   beforeEach(() => {
+    for (const key of ENV_KEYS) originalEnv[key] = process.env[key];
     process.env.GITHUB_TOKEN = "test-token";
+    process.env.GITHUB_REPOSITORY_OWNER = "anthropics";
+    process.env.GITHUB_REPOSITORY_NAME = "claude-code";
   });
 
   afterEach(() => {
     queue?.restore();
     queue = undefined;
-    if (originalToken === undefined) delete process.env.GITHUB_TOKEN;
-    else process.env.GITHUB_TOKEN = originalToken;
+    for (const key of ENV_KEYS) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key];
+    }
   });
 
   test("throws when GITHUB_TOKEN is not set", async () => {
     delete process.env.GITHUB_TOKEN;
     await expect(autoCloseDuplicates()).rejects.toThrow("GITHUB_TOKEN");
+  });
+
+  test("throws when GITHUB_REPOSITORY_OWNER or GITHUB_REPOSITORY_NAME is not set", async () => {
+    delete process.env.GITHUB_REPOSITORY_OWNER;
+    await expect(autoCloseDuplicates()).rejects.toThrow("GITHUB_REPOSITORY_OWNER");
+
+    process.env.GITHUB_REPOSITORY_OWNER = "anthropics";
+    delete process.env.GITHUB_REPOSITORY_NAME;
+    await expect(autoCloseDuplicates()).rejects.toThrow("GITHUB_REPOSITORY_NAME");
   });
 
   test("closes an issue whose duplicate comment is old, undisputed, and unresponded to", async () => {

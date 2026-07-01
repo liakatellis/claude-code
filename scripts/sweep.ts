@@ -32,7 +32,10 @@ export async function githubRequest<T>(
   });
 
   if (!response.ok) {
-    if (response.status === 404) return {} as T;
+    // Paginated callers check `.length` to stop looping, so a 404 must
+    // yield an empty array — `{}` would leave `.length` undefined and
+    // never break the pagination loop.
+    if (response.status === 404) return [] as unknown as T;
     const text = await response.text();
     throw new Error(`GitHub API ${response.status}: ${text}`);
   }

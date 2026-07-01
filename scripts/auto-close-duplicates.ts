@@ -105,8 +105,13 @@ export async function autoCloseDuplicates(): Promise<void> {
   }
   console.log("[DEBUG] GitHub token found");
 
-  const owner = process.env.GITHUB_REPOSITORY_OWNER || "anthropics";
-  const repo = process.env.GITHUB_REPOSITORY_NAME || "claude-code";
+  const owner = process.env.GITHUB_REPOSITORY_OWNER;
+  const repo = process.env.GITHUB_REPOSITORY_NAME;
+  if (!owner || !repo) {
+    throw new Error(
+      "GITHUB_REPOSITORY_OWNER and GITHUB_REPOSITORY_NAME environment variables are required"
+    );
+  }
   console.log(`[DEBUG] Repository: ${owner}/${repo}`);
 
   const threeDaysAgo = new Date();
